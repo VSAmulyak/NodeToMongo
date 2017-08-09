@@ -1,0 +1,50 @@
+var express = require('express');
+var http = require('http');
+var path = require('path');
+var bodyParser = require('body-parser');
+var logger = require('morgan');
+var mongoose = require('mongoose')
+var app = express();
+
+var routes = require('./routes/index');
+app.set('port', process.env.PORT || 3000);
+app.set('views', __dirname + '/views');
+app.set('view engine', 'jade');
+
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(logger('dev'));
+app.use(express.static(path.join(__dirname, 'public')));
+
+mongoose.connect('mongodb://localhost/Company');
+
+var Schema = new mongoose.Schema({
+    _id    : String,
+    name: String,
+    age   : Number
+});
+
+var user = mongoose.model('emp', Schema);
+
+app.get('/view', function(req, res){
+    user.find({}, function(err, docs){
+        if(err) res.json(err);
+        else    res.render('index', {users: docs});
+
+    });
+});
+
+app.post('/new', function(req, res){
+    new user({
+        _id    : req.body.email,
+        name: req.body.name,
+        age   : req.body.age
+    }).save(function(err, doc){
+        if(err) res.json(err);
+        else    res.redirect('/view');
+    });
+});
+
+var server = http.createServer(app).listen(app.get('port'), function(){
+    console.log('Express server listening on port ' + app.get('port'));
+});
